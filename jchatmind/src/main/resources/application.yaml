@@ -10,7 +10,7 @@ spring:
     host: smtp.qq.com
     port: 587
     username: 2057335724@qq.com
-    password: axyevtddmjcjcjjh # 邮箱授权码
+    password: # 邮箱授权码
     default-encoding: UTF-8
     properties:
       mail:
@@ -21,7 +21,7 @@ spring:
             required: true
   ai:
     deepseek:
-      api-key: sk-f8d35ca31af54bcab531286448c028ca
+      api-key: your-api-key
       base-url: https://api.deepseek.com
       chat:
         options:
