@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: jchatmind
+  # ========== Spring AI:base-url ???????? (port 18080) ==========
+  # ???????????,yaml ??????(?????)
+  # ????????????:PROXY_AUTH_TOKEN, PROXY_BASE_URL
+  ai:
+    deepseek:
+      api-key: "${PROXY_AUTH_TOKEN:jchatmind-local-dev-token}"
+      base-url: "${PROXY_BASE_URL:http://localhost:18080/v1}"
+      chat:
+        options:
+          model: DeepSeek-V4-Flash
+    zhipuai:
+      api-key: "${PROXY_AUTH_TOKEN:jchatmind-local-dev-token}"
+      base-url: "${ZHIPUAI_PROXY_BASE_URL:http://localhost:18080}"
+      chat:
+        options:
+          model: glm-5.1
+
+# ========== ?????? ==========
+credential-proxy:
+  url: "${PROXY_URL:http://localhost:18080}"
+  auth-token: "${PROXY_AUTH_TOKEN:jchatmind-local-dev-token}"
+
+# ========== MyBatis ==========
+mybatis:
+  type-aliases-package: com.kama.jchatmind.model.entity
+  mapper-locations: classpath:mapper/*.xml
+  type-handlers-package: com.kama.jchatmind.typehandler
+
+# ========== ???? ==========
+document:
+  storage:
+    base-path: ./data/documents

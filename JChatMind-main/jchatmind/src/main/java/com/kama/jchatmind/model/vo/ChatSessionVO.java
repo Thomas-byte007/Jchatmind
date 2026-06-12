@@ -1,0 +1,16 @@
+package com.kama.jchatmind.model.vo;
+
+import lombok.Builder;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+public class ChatSessionVO {
+    private String id;
+    private String agentId;
+    private String title;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
