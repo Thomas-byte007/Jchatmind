@@ -1,0 +1,257 @@
+/*
+ * ?????? -- Agent??????????????
+ * ????(OPTIONAL):??Agent???allowedTools?????
+ * ????:???????BASE_DIRECTORY?,????????(?../../etc/passwd)
+ * ??@Companent??? = ????,????????Agent????
+ */
+package com.kama.jchatmind.agent.tools;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+//@Component ??????????
+@Slf4j
+public class FileSystemTools implements Tool {
+
+    // ?????????,?????????;??????????????
+    private static final String BASE_DIRECTORY = System.getProperty("user.dir");
+
+    @Override
+    public String getName() { return "fileSystemTool"; }
+
+    @Override
+    public String getDescription() {
+        return "???????????,???????????????????";
+    }
+
+    @Override
+    public ToolType getType() { return ToolType.OPTIONAL; }
+
+    // ???? -- AI??????????????
+    @org.springframework.ai.tool.annotation.Tool(
+            name = "readFile",
+            description = "????????????:filePath - ????(???????)"
+    )
+    public String readFile(String filePath) {
+        try {
+            Path path = validateAndResolvePath(filePath);  // ????:??????
+            if (!Files.exists(path)) return "??:????? - " + filePath;
+            if (!Files.isRegularFile(path)) return "??:?????? - " + filePath;
+            String content = Files.readString(path);
+            log.info("??????: {}", filePath);
+            return "????:\n" + content;
+        } catch (SecurityException e) {
+            log.error("????:{}", e.getMessage());
+            return "??:????? - " + e.getMessage();
+        } catch (IOException e) {
+            log.error("??????: {}", filePath, e);
+            return "??:?????? - " + e.getMessage();
+        } catch (Exception e) {
+            log.error("????: {}", e.getMessage(), e);
+            return "??:???? - " + e.getMessage();
+        }
+    }
+
+    // ???? -- ????,??????
+    @org.springframework.ai.tool.annotation.Tool(
+            name = "writeFile",
+            description = "????????????????????,????????????:filePath - ????(???????),content - ??????"
+    )
+    public String writeFile(String filePath, String content) {
+        try {
+            Path path = validateAndResolvePath(filePath);
+            Path parent = path.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);  // ???????
+                log.info("????: {}", parent);
+            }
+            // CREATE=??????, TRUNCATE_EXISTING=?????, WRITE=????
+            Files.writeString(path, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            log.info("??????: {}", filePath);
+            return "??????: " + filePath;
+        } catch (SecurityException e) {
+            log.error("????:{}", e.getMessage());
+            return "??:????? - " + e.getMessage();
+        } catch (IOException e) {
+            log.error("??????: {}", filePath, e);
+            return "??:?????? - " + e.getMessage();
+        } catch (Exception e) {
+            log.error("????: {}", e.getMessage(), e);
+            return "??:???? - " + e.getMessage();
+        }
+    }
+
+    // ???? -- ?????????,???????
+    @org.springframework.ai.tool.annotation.Tool(
+            name = "appendToFile",
+            description = "???????????????????????????:filePath - ????(???????),content - ??????"
+    )
+    public String appendToFile(String filePath, String content) {
+        try {
+            Path path = validateAndResolvePath(filePath);
+            Path parent = path.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+                log.info("????: {}", parent);
+            }
+            // APPEND??=???????,???????
+            Files.writeString(path, content, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            log.info("?????????: {}", filePath);
+            return "?????????: " + filePath;
+        } catch (SecurityException e) {
+            log.error("????:{}", e.getMessage());
+            return "??:????? - " + e.getMessage();
+        } catch (IOException e) {
+            log.error("?????????: {}", filePath, e);
+            return "??:?????? - " + e.getMessage();
+        } catch (Exception e) {
+            log.error("????: {}", e.getMessage(), e);
+            return "??:???? - " + e.getMessage();
+        }
+    }
+
+    // ???? -- ?????????????,[DIR]????,[FILE]?????????
+    @org.springframework.ai.tool.annotation.Tool(
+            name = "listFiles",
+            description = "?????????????????:directoryPath - ????(???????),???????????"
+    )
+    public String listFiles(String directoryPath) {
+        try {
+            Path path;
+            if (directoryPath == null || directoryPath.trim().isEmpty()) {
+                path = Paths.get(BASE_DIRECTORY);
+            } else {
+                path = validateAndResolvePath(directoryPath);
+            }
+            if (!Files.exists(path)) return "??:????? - " + directoryPath;
+            if (!Files.isDirectory(path)) return "??:?????? - " + directoryPath;
+            List<String> items = Files.list(path)
+                    .map(p -> {
+                        String name = p.getFileName().toString();
+                        if (Files.isDirectory(p)) return "[DIR] " + name;
+                        else {
+                            try {
+                                long size = Files.size(p);
+                                return "[FILE] " + name + " (" + formatFileSize(size) + ")";
+                            } catch (IOException e) {
+                                return "[FILE] " + name;
+                            }
+                        }
+                    })
+                    .sorted()
+                    .collect(Collectors.toList());
+            if (items.isEmpty()) return "????: " + directoryPath;
+            log.info("????????: {}", directoryPath);
+            return "???? (" + directoryPath + "):\n" + String.join("\n", items);
+        } catch (SecurityException e) {
+            log.error("????:{}", e.getMessage());
+            return "??:????? - " + e.getMessage();
+        } catch (IOException e) {
+            log.error("??????: {}", directoryPath, e);
+            return "??:?????? - " + e.getMessage();
+        } catch (Exception e) {
+            log.error("????: {}", e.getMessage(), e);
+            return "??:???? - " + e.getMessage();
+        }
+    }
+
+    // ??????? -- ????????????????
+    @org.springframework.ai.tool.annotation.Tool(
+            name = "deleteFile",
+            description = "?????????????:path - ???????(???????)"
+    )
+    public String deleteFile(String path) {
+        try {
+            Path filePath = validateAndResolvePath(path);
+            if (!Files.exists(filePath)) return "??:???????? - " + path;
+            if (Files.isDirectory(filePath)) {
+                // ????:???(????),??????????
+                try (Stream<Path> paths = Files.walk(filePath)) {
+                    paths.sorted((a, b) -> b.compareTo(a))
+                            .forEach(p -> {
+                                try { Files.delete(p); }
+                                catch (IOException e) { log.warn("????: {}", p, e); }
+                            });
+                }
+                log.info("??????: {}", path);
+                return "??????: " + path;
+            } else {
+                Files.delete(filePath);
+                log.info("??????: {}", path);
+                return "??????: " + path;
+            }
+        } catch (SecurityException e) {
+            log.error("????:{}", e.getMessage());
+            return "??:????? - " + e.getMessage();
+        } catch (IOException e) {
+            log.error("??????: {}", path, e);
+            return "??:???? - " + e.getMessage();
+        } catch (Exception e) {
+            log.error("????: {}", e.getMessage(), e);
+            return "??:???? - " + e.getMessage();
+        }
+    }
+
+    // ???? -- ???????????
+    @org.springframework.ai.tool.annotation.Tool(
+            name = "createDirectory",
+            description = "??????,????????????????:directoryPath - ????(???????)"
+    )
+    public String createDirectory(String directoryPath) {
+        try {
+            Path path = validateAndResolvePath(directoryPath);
+            if (Files.exists(path)) {
+                if (Files.isDirectory(path)) return "?????: " + directoryPath;
+                else return "??:?????????? - " + directoryPath;
+            }
+            Files.createDirectories(path);  // ?????????????
+            log.info("??????: {}", directoryPath);
+            return "??????: " + directoryPath;
+        } catch (SecurityException e) {
+            log.error("????:{}", e.getMessage());
+            return "??:????? - " + e.getMessage();
+        } catch (IOException e) {
+            log.error("??????: {}", directoryPath, e);
+            return "??:?????? - " + e.getMessage();
+        } catch (Exception e) {
+            log.error("????: {}", e.getMessage(), e);
+            return "??:???? - " + e.getMessage();
+        }
+    }
+
+    /*
+     * ?????? -- ????????????,????????????
+     * ????????:????? "../../../etc/passwd" ????
+     * @param filePath ?????????
+     * @return ???????
+     * @throws SecurityException ???????
+     */
+    private Path validateAndResolvePath(String filePath) throws SecurityException {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("????????");
+        }
+        Path basePath = Paths.get(BASE_DIRECTORY).toAbsolutePath().normalize();
+        Path resolvedPath = basePath.resolve(filePath).toAbsolutePath().normalize();
+        // startsWith??:????????????????
+        if (!resolvedPath.startsWith(basePath)) {
+            throw new SecurityException("?????????: " + filePath);
+        }
+        return resolvedPath;
+    }
+
+    // ???????:B ? KB ? MB ? GB ????
+    private String formatFileSize(long size) {
+        if (size < 1024) return size + " B";
+        else if (size < 1024 * 1024) return String.format("%.2f KB", size / 1024.0);
+        else if (size < 1024 * 1024 * 1024) return String.format("%.2f MB", size / (1024.0 * 1024.0));
+        else return String.format("%.2f GB", size / (1024.0 * 1024.0 * 1024.0));
+    }
+}

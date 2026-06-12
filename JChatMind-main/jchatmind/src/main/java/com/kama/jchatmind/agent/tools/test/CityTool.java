@@ -1,0 +1,29 @@
+/*
+ * ????(???) -- ?????????????
+ * FIXED??????Agent????,????????
+ * @Component:Spring???Bean,ToolFacadeService??????
+ */
+package com.kama.jchatmind.agent.tools.test;
+
+import com.kama.jchatmind.agent.tools.Tool;
+import com.kama.jchatmind.agent.tools.ToolType;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CityTool implements Tool {
+
+    @Override
+    public String getName() { return "cityTool"; }
+
+    @Override
+    public String getDescription() { return "???????"; }
+
+    @Override
+    public ToolType getType() { return ToolType.FIXED; }
+
+    // @Tool?? ? AI???????,description??AI??????
+    @org.springframework.ai.tool.annotation.Tool(name = "getCity", description = "???????")
+    public String getCity() {
+        return "??";
+    }
+}
